@@ -3,7 +3,15 @@ package users
 import (
 	"fmt"
 
+	"github.com/howie111/rest-api/utils/date_utils"
+
+	"github.com/howie111/rest-api/datasources/postgres/users_db"
+
 	"github.com/howie111/rest-api/utils/errors"
+)
+
+const (
+	queryInsertUser = "INSERT INTO users (first_name, last_name, email, date_created) VALUES($1,$2,$3,$4);"
 )
 
 var (
@@ -12,23 +20,27 @@ var (
 
 func (user *User) Save() *errors.RestError {
 
-	current := usersDB[user.Id]
+	user.DateCreated = date_utils.GetNowString()
 
-	if current != nil {
+	_, err := users_db.Client.Exec(queryInsertUser, user.FirstName, user.LastName, user.Email, user.DateCreated)
 
-		if current.Email == user.Email {
-			return errors.NewBadRequestError(fmt.Sprintf("email %s already registered", user.Email))
-		}
-
-		return errors.NewBadRequestError(fmt.Sprintf("user %d already exists", user.Id))
+	if err != nil {
+		return errors.NewInternalServerError(
+			fmt.Sprintf("error when trying to save user: %s", err.Error()))
 	}
-
-	usersDB[user.Id] = user
-
+	if err != nil {
+		return errors.NewInternalServerError(
+			fmt.Sprintf("error when trying to save user: %s", err.Error()))
+	}
 	return nil
 }
 
 func (user *User) Get() *errors.RestError {
+
+	err := users_db.Client.Ping()
+	if err != nil {
+		panic(err)
+	}
 
 	result := usersDB[user.Id]
 
