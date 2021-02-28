@@ -14,7 +14,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CreateUser(c *gin.Context) {
+func getUserId(userIdParam string) (int64, *errors.RestError) {
+	userId, err := strconv.ParseInt(userIdParam, 10, 64)
+
+	if err != nil {
+		return 0, errors.NewBadRequestError("user id should be a number")
+	}
+
+	return userId, nil
+}
+
+func Create(c *gin.Context) {
 
 	user := users.User{}
 
@@ -41,14 +51,12 @@ func CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func GetUser(c *gin.Context) {
+func Get(c *gin.Context) {
 
-	userId, err := strconv.ParseInt(c.Param("user_id"), 10, 64)
+	userId, idErr := getUserId(c.Param("user_id"))
 
-	if err != nil {
-		err := errors.NewBadRequestError(err.Error())
-		c.JSON(err.Status, err)
-		return
+	if idErr != nil {
+		c.JSON(idErr.Status, idErr)
 	}
 
 	user, getErr := services.GetUser(userId)
@@ -59,5 +67,66 @@ func GetUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, user)
+
+}
+
+func Update(c *gin.Context) {
+
+	userId, idErr := getUserId(c.Param("user_id"))
+
+	if idErr != nil {
+		c.JSON(idErr.Status, idErr)
+	}
+
+	user := users.User{}
+
+	user.Id = userId
+
+	bytes, err := ioutil.ReadAll(c.Request.Body)
+
+	if err != nil {
+		return
+	}
+	unmarshalErr := json.Unmarshal(bytes, &user)
+
+	if unmarshalErr != nil {
+		resErr := errors.NewBadRequestError(unmarshalErr.Error())
+		c.JSON(resErr.Status, resErr)
+		return
+	}
+
+	var isPatch bool
+	if c.Request.Method == http.MethodPatch {
+		isPatch = true
+	}
+
+	result, updateErr := services.UpdateUser(isPatch, user)
+
+	if updateErr != nil {
+		err := errors.NewBadRequestError(updateErr.Error)
+		c.JSON(err.Status, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+
+}
+
+func Delete(c *gin.Context) {
+
+	userId, idErr := getUserId(c.Param("user_id"))
+
+	if idErr != nil {
+		c.JSON(idErr.Status, idErr)
+	}
+
+	deleteErr := services.DeleteUser(userId)
+
+	if deleteErr != nil {
+		c.JSON(deleteErr.Status, deleteErr)
+		return
+	}
+
+	c.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 
 }

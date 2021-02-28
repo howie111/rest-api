@@ -8,7 +8,9 @@ import (
 func UrlMapping() {
 
 	router.GET("/ping", PingController)
-	router.POST("/users", CreateUser)
-	router.GET("/users/:user_id", GetUser)
-	//router.GET("/users/search", controllers.SearchUser)
+	router.POST("/users", Create)
+	router.GET("/users/:user_id", Get)
+	router.PUT("/users/:user_id", Update)
+	router.PATCH("/users/:user_id", Update)
+	router.DELETE("/users/:user_id", Delete)
 }
