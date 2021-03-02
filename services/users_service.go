@@ -2,15 +2,34 @@ package services
 
 import (
 	"github.com/howie111/rest-api/domains/users"
+	"github.com/howie111/rest-api/utils/crypto_utils"
+	"github.com/howie111/rest-api/utils/date_utils"
 	"github.com/howie111/rest-api/utils/errors"
 )
 
-func CreateUser(user users.User) (*users.User, *errors.RestError) {
+var (
+	UsersService UsersServiceInterface = &usersService{}
+)
 
+type UsersServiceInterface interface {
+	CreateUser(user users.User) (*users.User, *errors.RestError)
+	GetUser(id int64) (*users.User, *errors.RestError)
+	UpdateUser(isPatch bool, user users.User) (*users.User, *errors.RestError)
+	DeleteUser(userId int64) *errors.RestError
+	SearchUser(status string) (users.Users, *errors.RestError)
+}
+
+type usersService struct {
+}
+
+func (u *usersService) CreateUser(user users.User) (*users.User, *errors.RestError) {
 	err := user.Validate()
 	if err != nil {
 		return nil, err
 	}
+	user.Status = users.StatusActive
+	user.DateCreated = date_utils.GetDBNowDBFormat()
+	user.Password = crypto_utils.GetMD5(user.Password)
 
 	err = user.Save()
 
@@ -21,7 +40,7 @@ func CreateUser(user users.User) (*users.User, *errors.RestError) {
 	return &user, nil
 }
 
-func GetUser(id int64) (*users.User, *errors.RestError) {
+func (u *usersService) GetUser(id int64) (*users.User, *errors.RestError) {
 
 	result := users.User{Id: id}
 
@@ -34,9 +53,9 @@ func GetUser(id int64) (*users.User, *errors.RestError) {
 
 }
 
-func UpdateUser(isPatch bool, user users.User) (*users.User, *errors.RestError) {
+func (u *usersService) UpdateUser(isPatch bool, user users.User) (*users.User, *errors.RestError) {
 
-	currentUser, err := GetUser(user.Id)
+	currentUser, err := u.GetUser(user.Id)
 
 	if err != nil {
 		return nil, err
@@ -69,7 +88,7 @@ func UpdateUser(isPatch bool, user users.User) (*users.User, *errors.RestError) 
 
 }
 
-func DeleteUser(userId int64) *errors.RestError {
+func (u *usersService) DeleteUser(userId int64) *errors.RestError {
 
 	user := &users.User{Id: userId}
 	err := user.Delete()
@@ -78,5 +97,13 @@ func DeleteUser(userId int64) *errors.RestError {
 	}
 
 	return nil
+
+}
+
+func (u *usersService) SearchUser(status string) (users.Users, *errors.RestError) {
+
+	user := users.User{}
+
+	return user.FindByStatus(status)
 
 }

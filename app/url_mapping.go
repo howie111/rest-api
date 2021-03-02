@@ -13,4 +13,5 @@ func UrlMapping() {
 	router.PUT("/users/:user_id", Update)
 	router.PATCH("/users/:user_id", Update)
 	router.DELETE("/users/:user_id", Delete)
+	router.GET("internal/users/search", Search)
 }
